@@ -1,4 +1,11 @@
+import type { SphericalPosition } from "@photo-sphere-viewer/core";
 import type { VirtualTourNode } from "@photo-sphere-viewer/virtual-tour-plugin";
+
+export type TourModelPlacement = Readonly<SphericalPosition> & {
+    readonly distance: number;
+    readonly rotation: readonly [x: number, y: number, z: number];
+    readonly scale: number;
+};
 
 type TourLink = {
     readonly nodeId: string;
@@ -9,10 +16,18 @@ type TourPano = {
     readonly name: string;
     readonly file: string;
     readonly links: readonly TourLink[];
+    readonly model?: false | Partial<TourModelPlacement>;
 };
 
 const panoramaBasePath = "/tour/panoramas/zind-000";
 const linkPitch = "-10deg";
+const defaultModelPlacement: TourModelPlacement = {
+    yaw: "0deg",
+    pitch: "-22deg",
+    distance: 4.25,
+    rotation: [0, Math.PI, 0],
+    scale: 1.3,
+};
 
 export const startNodeId = "pano_3";
 
@@ -211,7 +226,13 @@ const zindPanos: readonly TourPano[] = [
     },
 ];
 
-export const tourNodes: VirtualTourNode[] = zindPanos.map(({ id, name, file, links }) => {
+export type TourNode = VirtualTourNode & {
+    readonly data: {
+        readonly model?: TourModelPlacement;
+    };
+};
+
+export const tourNodes: TourNode[] = zindPanos.map(({ id, name, file, links, model }) => {
     const panorama = `${panoramaBasePath}/${file}`;
 
     return {
@@ -219,6 +240,12 @@ export const tourNodes: VirtualTourNode[] = zindPanos.map(({ id, name, file, lin
         name,
         panorama,
         thumbnail: panorama,
+        data: {
+            model: {
+                ...defaultModelPlacement,
+                ...model,
+            },
+        },
         links: links.map(({ nodeId, yaw }) => ({
             nodeId,
             position: {
